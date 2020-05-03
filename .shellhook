@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+export WD=$PWD
+
+for x in bin build out; do
+    if [ ! -d "$WD/$x" ]; then
+        mkdir "$WD/$x"
+    fi
+done
+
+alias clang-format="clang-format -verbose -i"
