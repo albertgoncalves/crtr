@@ -9,3 +9,9 @@ for x in bin build out; do
 done
 
 alias clang-format="clang-format -verbose -i"
+
+open () {
+    xdg-open "$1" > /dev/null 2>&1
+}
+
+export -f open

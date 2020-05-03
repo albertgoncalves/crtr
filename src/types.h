@@ -11,4 +11,6 @@ typedef float f32;
 #define MAX_U16 0xFFFF
 #define MAX_U32 0xFFFFFFFF
 
+typedef FILE fileHandle;
+
 #endif
