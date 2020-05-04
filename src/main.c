@@ -14,7 +14,7 @@
 #define WIDTH_FLOAT  1024.0f
 #define HEIGHT_FLOAT 1024.0f
 
-#define FILEPATH "out/main.png"
+#define FILEPATH "out/main.bmp"
 
 #include "bmp.h"
 
