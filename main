@@ -11,6 +11,8 @@ export TARGET_VALGRIND="$WD/bin/main_valgrind"
 export FLAGS=(
     "-fdelete-null-pointer-checks"
     "-fshort-enums"
+    "-fsingle-precision-constant"
+    "-march=native"
     "-O3"
     "-std=gnu99"
     "-Wall"
