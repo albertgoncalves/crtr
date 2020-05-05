@@ -8,15 +8,15 @@
  */
 
 #define WIDTH  1024
-#define HEIGHT 1024
-#define SIZE   1048576
+#define HEIGHT 1152
+#define SIZE   1310720
 
 #define WIDTH_FLOAT  1024.0f
-#define HEIGHT_FLOAT 1024.0f
+#define HEIGHT_FLOAT 1152.0f
 
 #define FILM_DISTANCE 1.0f
 #define FILM_WIDTH    1.0f
-#define FILM_HEIGHT   1.0f
+#define FILM_HEIGHT   (1152.0f / 1024.0f)
 
 #define EPSILON 0.001f
 
