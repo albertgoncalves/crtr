@@ -41,18 +41,18 @@ typedef struct {
 
 static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 10.0f, .z = 1.0f};
 
-static rgbColor BACKGROUND = {.red = 240, .green = 240, .blue = 240};
+static rgbColor BACKGROUND = {.red = 90, .green = 175, .blue = 235};
 
 static plane PLANES[N_PLANES] = {
     {.normal = {.x = 0.0f, .y = 0.0f, .z = 1.0f},
      .delta = 1.0f,
-     .color = {.red = 255, .green = 0, .blue = 255}},
+     .color = {.red = 235, .green = 205, .blue = 190}},
 };
 
 static sphere SPHERES[N_SPHERES] = {
     {.center = {.x = 0.5f, .y = -2.0f, .z = 1.25f},
      .radius = 3.0f,
-     .color = {.red = 0, .green = 255, .blue = 255}},
+     .color = {.red = 85, .green = 240, .blue = 160}},
 };
 
 static rgbColor cast_ray(vec3 ray_origin, vec3 ray_direction) {
