@@ -11,7 +11,7 @@ typedef unsigned int   u32;
 
 typedef float f32;
 
-#define F32_MAX FLT_MAX;
+#define F32_MAX FLT_MAX
 
 typedef FILE fileHandle;
 

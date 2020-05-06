@@ -17,9 +17,9 @@
 #define FILM_DISTANCE 1.0f
 #define FILM_WIDTH    1.0f
 #define FILM_HEIGHT   (1152.0f / 1024.0f)
+#define EPSILON       0.001f
 
-#define EPSILON 0.001f
-
+#define N_RAYS    2
 #define N_PLANES  1
 #define N_SPHERES 1
 
@@ -39,6 +39,11 @@ typedef struct {
     rgbColor color;
 } sphere;
 
+typedef struct {
+    vec3 origin;
+    vec3 direction;
+} ray;
+
 static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 10.0f, .z = 1.0f};
 
 static rgbColor BACKGROUND = {.red = 90, .green = 175, .blue = 235};
@@ -55,44 +60,68 @@ static sphere SPHERES[N_SPHERES] = {
      .color = {.red = 85, .green = 240, .blue = 160}},
 };
 
-static rgbColor cast_ray(vec3 ray_origin, vec3 ray_direction) {
+static rgbColor get_color(ray current_ray) {
     f32      threshold = F32_MAX;
     rgbColor color = BACKGROUND;
-    for (u8 i = 0; i < N_PLANES; ++i) {
-        plane p = PLANES[i];
-        f32   denom = dot(p.normal, ray_direction);
-        if (denom < -EPSILON) {
-            f32 t = (-p.delta - dot(p.normal, ray_origin)) / denom;
-            if (t < threshold) {
-                threshold = t;
-                color = p.color;
+    u8       count = 0;
+    ray      next_ray = {0};
+    for (u8 _ = 0; _ < N_RAYS; ++_) {
+        for (u8 i = 0; i < N_PLANES; ++i) {
+            plane p = PLANES[i];
+            f32   denom = dot(p.normal, current_ray.direction);
+            if (denom < -EPSILON) {
+                f32 t = (-p.delta - dot(p.normal, current_ray.origin)) / denom;
+                if (t < threshold) {
+                    threshold = t;
+                    color = p.color;
+                    next_ray.origin = mul_vec3_f32(current_ray.direction, t);
+                    next_ray.direction = p.normal;
+                    ++count;
+                }
             }
         }
-    }
-    for (u8 i = 0; i < N_SPHERES; ++i) {
-        sphere s = SPHERES[i];
-        vec3   sphere_origin = sub_vec3(ray_origin, s.center);
-        f32    a = dot(ray_direction, ray_direction);
-        f32    b = 2.0f * dot(sphere_origin, ray_direction);
-        f32    c = dot(sphere_origin, sphere_origin) - (s.radius * s.radius);
-        f32    denom = 2.0f * a;
-        f32    root = sqrtf((b * b) - (4.0f * a * c));
-        if (EPSILON < root) {
-            f32 t_positive = (-b + root) / denom;
-            f32 t_negative = (-b - root) / denom;
-            f32 t = ((0.0f < t_negative) && (t_negative < t_positive))
-                        ? t_negative
-                        : t_positive;
-            if ((0.0f < t) & (t < threshold)) {
-                threshold = t;
-                color = s.color;
+        for (u8 i = 0; i < N_SPHERES; ++i) {
+            sphere s = SPHERES[i];
+            vec3   sphere_origin = sub_vec3(current_ray.origin, s.center);
+            f32    a = dot(current_ray.direction, current_ray.direction);
+            f32    b = 2.0f * dot(sphere_origin, current_ray.direction);
+            f32 c = dot(sphere_origin, sphere_origin) - (s.radius * s.radius);
+            f32 denom = 2.0f * a;
+            f32 root = sqrtf((b * b) - (4.0f * a * c));
+            if (EPSILON < root) {
+                f32 t_positive = (-b + root) / denom;
+                f32 t_negative = (-b - root) / denom;
+                f32 t = ((0.0f < t_negative) && (t_negative < t_positive))
+                            ? t_negative
+                            : t_positive;
+                if ((0.0f < t) & (t < threshold)) {
+                    threshold = t;
+                    color = s.color;
+                    next_ray.origin = mul_vec3_f32(current_ray.direction, t);
+                    next_ray.direction =
+                        normalize_vec3(sub_vec3(next_ray.origin, s.center));
+                    ++count;
+                }
             }
+        }
+        if (0 < count) {
+            current_ray.origin = next_ray.origin;
+            current_ray.direction = next_ray.direction;
+        } else {
+            break;
         }
     }
     return color;
 }
 
 static void render(pixel* pixels) {
+    {
+        /* NOTE: Hmm... is this necessary? */
+        for (u8 i = 0; i < N_PLANES; ++i) {
+            plane p = PLANES[i];
+            p.normal = normalize_vec3(p.normal);
+        }
+    }
     vec3 camera_z = normalize_vec3(CAMERA_POSITION);
     vec3 camera_x =
         normalize_vec3(cross_vec3(new_vec3(0.0f, 0.0f, 1.0f), camera_z));
@@ -109,9 +138,12 @@ static void render(pixel* pixels) {
                 add_vec3(film_center,
                          mul_vec3_f32(camera_x, film_x * film_half_width)),
                 mul_vec3_f32(camera_y, film_y * film_half_height));
-            rgbColor color = cast_ray(
-                CAMERA_POSITION,
-                normalize_vec3(sub_vec3(film_position, CAMERA_POSITION)));
+            ray film_ray = {
+                .origin = CAMERA_POSITION,
+                .direction =
+                    normalize_vec3(sub_vec3(film_position, CAMERA_POSITION)),
+            };
+            rgbColor color = get_color(film_ray);
             pixels->red = color.red;
             pixels->green = color.green;
             pixels->blue = color.blue;
