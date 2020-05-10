@@ -16,7 +16,7 @@
 #define HALF_WIDTH_FLOAT  256.0f
 #define HALF_HEIGHT_FLOAT 288.0f
 
-#define VIEWPORT_SIZE      1.5f
+#define VIEWPORT_SIZE      1.25f
 #define PROJECTION_PLANE_Z 1.0f
 #define MIN_DISTANCE       1.0f
 #define EPSILON            0.1f
@@ -80,12 +80,12 @@ static Sphere SPHERES[N_SPHERES] = {
      .color = {.red = 85, .green = 240, .blue = 160},
      .specular = 500.0f,
      .reflective = 0.2f},
-    {.center = {.x = -2.0f, .y = 0.5f, .z = 5.0f},
+    {.center = {.x = -1.75f, .y = 0.5f, .z = 5.0f},
      .radius = 1.0f,
      .color = {.red = 240, .green = 160, .blue = 85},
      .specular = 500.0f,
      .reflective = 0.4f},
-    {.center = {.x = 2.0f, .y = -0.5f, .z = 3.0f},
+    {.center = {.x = 1.75f, .y = -0.5f, .z = 3.0f},
      .radius = 1.0f,
      .color = {.red = 160, .green = 85, .blue = 240},
      .specular = 10.f,
