@@ -62,22 +62,27 @@ typedef struct {
     vec3      position;
 } lightSource;
 
-static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = -2.0f};
+static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = -1.5f};
+static vec3 CAMERA_ROTATION[3] = {
+    {.x = 1.0f, .y = 0.0f, .z = 0.0f},
+    {.x = 0.0f, .y = 1.0f, .z = 0.0f},
+    {.x = 0.0f, .y = 0.0f, .z = 1.0f},
+};
 
 static rgbColor BACKGROUND = {.red = 245, .green = 245, .blue = 245};
 
 static sphere SPHERES[N_SPHERES] = {
-    {.center = {.x = 0.0f, .y = -0.75f, .z = 3.5f},
+    {.center = {.x = 0.0f, .y = -0.75f, .z = 4.5f},
      .radius = 1.0f,
      .color = {.red = 85, .green = 240, .blue = 160},
      .specular = 500.0f,
      .reflective = 0.2f},
-    {.center = {.x = -2.0f, .y = 0.5f, .z = 4.0f},
+    {.center = {.x = -2.0f, .y = 0.5f, .z = 5.0f},
      .radius = 1.0f,
      .color = {.red = 240, .green = 160, .blue = 85},
      .specular = 500.0f,
      .reflective = 0.4f},
-    {.center = {.x = 2.0f, .y = -0.5f, .z = 2.0f},
+    {.center = {.x = 2.0f, .y = -0.5f, .z = 3.0f},
      .radius = 1.0f,
      .color = {.red = 160, .green = 85, .blue = 240},
      .specular = 10.f,
@@ -204,8 +209,19 @@ static void render(pixel* pixels) {
         for (f32 x = -HALF_WIDTH_FLOAT; x < HALF_WIDTH_FLOAT; ++x) {
             camera_direction.x = (x * VIEWPORT_SIZE) / WIDTH_FLOAT;
             vec3 ray_position = CAMERA_POSITION;
-            vec3 ray_direction = camera_direction;
-            u8   index = 0;
+            vec3 ray_direction = {0};
+            {
+                ray_direction.x += CAMERA_ROTATION[0].x * camera_direction.x;
+                ray_direction.x += CAMERA_ROTATION[0].y * camera_direction.y;
+                ray_direction.x += CAMERA_ROTATION[0].z * camera_direction.z;
+                ray_direction.y += CAMERA_ROTATION[1].x * camera_direction.x;
+                ray_direction.y += CAMERA_ROTATION[1].y * camera_direction.y;
+                ray_direction.y += CAMERA_ROTATION[1].z * camera_direction.z;
+                ray_direction.z += CAMERA_ROTATION[2].x * camera_direction.x;
+                ray_direction.z += CAMERA_ROTATION[2].y * camera_direction.y;
+                ray_direction.z += CAMERA_ROTATION[2].z * camera_direction.z;
+            }
+            u8 index = 0;
             for (u8 i = 0; i < REFLECT_DEPTH; ++i) {
                 intersectionResult intersection =
                     nearest_intersection(ray_position,
