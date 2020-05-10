@@ -16,7 +16,7 @@
 #define HALF_WIDTH_FLOAT  512.0f
 #define HALF_HEIGHT_FLOAT 576.0f
 
-#define EPSILON 0.001f
+#define EPSILON 0.01f
 
 #define N_SPHERES 4
 #define N_LIGHTS  3
@@ -24,6 +24,8 @@
 #define VIEWPORT_SIZE      1.0f
 #define PROJECTION_PLANE_Z 1.0f
 #define MIN_DISTANCE       1.0f
+
+#define REFLECT_DEPTH 4
 
 #define FILEPATH "out/main.bmp"
 
@@ -34,6 +36,7 @@ typedef struct {
     rgbColor color;
     f32      radius;
     f32      specular;
+    f32      reflective;
 } sphere;
 
 typedef enum {
@@ -67,19 +70,23 @@ static sphere SPHERES[N_SPHERES] = {
     {.center = {.x = 0.0f, .y = -1.0f, .z = 3.0f},
      .radius = 1.0f,
      .color = {.red = 85, .green = 240, .blue = 160},
-     .specular = 500.0f},
+     .specular = 500.0f,
+     .reflective = 0.2f},
     {.center = {.x = 2.0f, .y = 0.0f, .z = 4.0f},
      .radius = 1.0f,
      .color = {.red = 240, .green = 160, .blue = 85},
-     .specular = 500.0f},
+     .specular = 500.0f,
+     .reflective = 0.4f},
     {.center = {.x = -2.0f, .y = 0.0f, .z = 4.0f},
      .radius = 1.0f,
      .color = {.red = 160, .green = 85, .blue = 240},
-     .specular = 10.f},
+     .specular = 10.f,
+     .reflective = 0.3f},
     {.center = {.x = 0.0f, .y = -5001.0f, .z = 0.0f},
      .radius = 5000.0f,
      .color = {.red = 128, .green = 128, .blue = 128},
-     .specular = 1000.0f},
+     .specular = 1000.0f,
+     .reflective = 0.1f},
 };
 
 static lightSource LIGHTS[N_LIGHTS] = {
@@ -133,6 +140,11 @@ static intersectionResult nearest_intersection(vec3 origin,
     return result;
 }
 
+static vec3 reflect(vec3 a, vec3 b) {
+    vec3 result = sub_vec3(mul_vec3_f32(b, 2.0f * dot_vec3(a, b)), a);
+    return result;
+}
+
 static f32 light_intensity(vec3 point, vec3 normal, vec3 view, f32 specular) {
     f32 intensity = 0.0f;
     f32 len_normal = len_vec3(normal);
@@ -161,10 +173,8 @@ static f32 light_intensity(vec3 point, vec3 normal, vec3 view, f32 specular) {
                 intensity += (l.intensity * reflection_diffuse) /
                              (len_normal * len_vec3(position));
             }
-            vec3 reflection_specular = sub_vec3(
-                mul_vec3_f32(normal, 2.0f * dot_vec3(normal, position)),
-                position);
-            f32 reflection = dot_vec3(reflection_specular, view);
+            vec3 reflection_specular = reflect(normal, position);
+            f32  reflection = dot_vec3(reflection_specular, view);
             if (0.0f < reflection) {
                 intensity += l.intensity *
                              powf(reflection / (len_vec3(reflection_specular) *
@@ -176,34 +186,76 @@ static f32 light_intensity(vec3 point, vec3 normal, vec3 view, f32 specular) {
     return intensity;
 }
 
+typedef struct {
+    rgbColor color;
+    f32      reflective;
+} colorReflection;
+
 static void render(pixel* pixels) {
     vec3 camera_direction = {
         .x = 0.0f,
         .y = 0.0f,
         .z = PROJECTION_PLANE_Z,
     };
+    colorReflection reflections[REFLECT_DEPTH] = {0};
+    f32             min_distance = MIN_DISTANCE;
     for (f32 y = -HALF_HEIGHT_FLOAT; y < HALF_HEIGHT_FLOAT; ++y) {
         camera_direction.y = (y * VIEWPORT_SIZE) / HEIGHT_FLOAT;
         for (f32 x = -HALF_WIDTH_FLOAT; x < HALF_WIDTH_FLOAT; ++x) {
             camera_direction.x = (x * VIEWPORT_SIZE) / WIDTH_FLOAT;
-            intersectionResult intersection =
-                nearest_intersection(CAMERA_POSITION,
-                                     camera_direction,
-                                     MIN_DISTANCE,
-                                     F32_MAX);
-            if (intersection.exists == TRUE) {
-                sphere s = SPHERES[intersection.index];
-                vec3   point = add_vec3(
-                    CAMERA_POSITION,
-                    mul_vec3_f32(camera_direction, intersection.threshold));
-                vec3 normal = sub_vec3(point, s.center);
-                normal = mul_vec3_f32(normal, 1.0f / len_vec3(normal));
-                vec3 view = mul_vec3_f32(camera_direction, -1.0f);
-                f32  intensity =
-                    light_intensity(point, normal, view, s.specular);
-                pixels->red = mul_u8_f32(s.color.red, intensity);
-                pixels->blue = mul_u8_f32(s.color.blue, intensity);
-                pixels->green = mul_u8_f32(s.color.green, intensity);
+            vec3 ray_position = CAMERA_POSITION;
+            vec3 ray_direction = camera_direction;
+            u8   index = 0;
+            for (u8 i = 0; i < REFLECT_DEPTH; ++i) {
+                intersectionResult intersection =
+                    nearest_intersection(ray_position,
+                                         ray_direction,
+                                         min_distance,
+                                         F32_MAX);
+                if (intersection.exists == TRUE) {
+                    sphere s = SPHERES[intersection.index];
+                    vec3   point = add_vec3(
+                        ray_position,
+                        mul_vec3_f32(ray_direction, intersection.threshold));
+                    vec3 normal = sub_vec3(point, s.center);
+                    normal = mul_vec3_f32(normal, 1.0f / len_vec3(normal));
+                    vec3 view = mul_vec3_f32(ray_direction, -1.0f);
+                    f32  intensity =
+                        light_intensity(point, normal, view, s.specular);
+                    colorReflection* r = &reflections[index++];
+                    r->color.red = mul_u8_f32(s.color.red, intensity);
+                    r->color.blue = mul_u8_f32(s.color.blue, intensity);
+                    r->color.green = mul_u8_f32(s.color.green, intensity);
+                    r->reflective = s.reflective;
+                    if (s.reflective <= 0.0f) {
+                        break;
+                    }
+                    ray_position = point;
+                    ray_direction = reflect(view, normal);
+                    min_distance = EPSILON;
+                } else {
+                    break;
+                }
+            }
+            if (0 < index) {
+                for (u8 i = (u8)(index - 1); 0 < i; --i) {
+                    u8       j = (u8)(i - 1);
+                    rgbColor reflection = reflections[i].color;
+                    rgbColor color = reflections[j].color;
+                    f32      reflective = reflections[j].reflective;
+                    color.red = mul_u8_f32(color.red, 1.0f - reflective);
+                    color.green = mul_u8_f32(color.green, 1.0f - reflective);
+                    color.blue = mul_u8_f32(color.blue, 1.0f - reflective);
+                    reflection.red = mul_u8_f32(reflection.red, reflective);
+                    reflection.green =
+                        mul_u8_f32(reflection.green, reflective);
+                    reflection.blue = mul_u8_f32(reflection.blue, reflective);
+                    reflections[j].color = add_color(color, reflection);
+                }
+                rgbColor color = reflections[0].color;
+                pixels->red = color.red;
+                pixels->green = color.green;
+                pixels->blue = color.blue;
             } else {
                 pixels->red = BACKGROUND.red;
                 pixels->green = BACKGROUND.green;
