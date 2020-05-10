@@ -11,7 +11,7 @@ typedef struct {
     u32 file_size;
     u32 _;
     u32 header_offset;
-} bmpHeader;
+} BmpHeader;
 
 typedef struct {
     u32 header_size;
@@ -20,53 +20,53 @@ typedef struct {
     u16 color_planes;
     u16 bits_per_pixel;
     u8  _[24];
-} dibHeader;
+} DibHeader;
 
 typedef struct {
     u8 blue;
     u8 green;
     u8 red;
     u8 _;
-} pixel;
+} Pixel;
 
-#define BMP_HEADER_SIZE sizeof(bmpHeader) + sizeof(dibHeader)
-#define BMP_FILE_SIZE   BMP_HEADER_SIZE + sizeof(pixel[SIZE])
+#define BMP_HEADER_SIZE sizeof(BmpHeader) + sizeof(DibHeader)
+#define BMP_FILE_SIZE   BMP_HEADER_SIZE + sizeof(Pixel[SIZE])
 
 #pragma pack(pop)
 
 typedef struct {
-    pixel     pixels[SIZE];
-    dibHeader dib_header;
-    bmpHeader bmp_header;
-} bmpBuffer;
+    Pixel     pixels[SIZE];
+    DibHeader dib_header;
+    BmpHeader bmp_header;
+} BmpBuffer;
 
-static void set_bmp_header(bmpHeader* header) {
+static void set_bmp_header(BmpHeader* header) {
     header->id = 0x4d42;
     header->file_size = BMP_FILE_SIZE;
     header->header_offset = BMP_HEADER_SIZE;
 }
 
-static void set_dib_header(dibHeader* header) {
-    header->header_size = sizeof(dibHeader);
+static void set_dib_header(DibHeader* header) {
+    header->header_size = sizeof(DibHeader);
     header->pixel_width = WIDTH;
     header->pixel_height = HEIGHT;
     header->color_planes = 1;
     header->bits_per_pixel = sizeof(u32) * 8;
 }
 
-static void write_bmp(fileHandle* file, bmpBuffer* buffer) {
-    if (fwrite(&buffer->bmp_header, 1, sizeof(bmpHeader), file) !=
-        sizeof(bmpHeader))
+static void write_bmp(FileHandle* file, BmpBuffer* buffer) {
+    if (fwrite(&buffer->bmp_header, 1, sizeof(BmpHeader), file) !=
+        sizeof(BmpHeader))
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->dib_header, 1, sizeof(dibHeader), file) !=
-        sizeof(dibHeader))
+    if (fwrite(&buffer->dib_header, 1, sizeof(DibHeader), file) !=
+        sizeof(DibHeader))
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->pixels, 1, sizeof(pixel[SIZE]), file) !=
-        sizeof(pixel[SIZE]))
+    if (fwrite(&buffer->pixels, 1, sizeof(Pixel[SIZE]), file) !=
+        sizeof(Pixel[SIZE]))
     {
         exit(EXIT_FAILURE);
     }

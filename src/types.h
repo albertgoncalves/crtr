@@ -13,6 +13,6 @@ typedef float f32;
 
 #define F32_MAX FLT_MAX
 
-typedef FILE fileHandle;
+typedef FILE FileHandle;
 
 #endif
