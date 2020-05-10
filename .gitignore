@@ -2,6 +2,8 @@
 !.gitignore
 !*.nix
 !.shellhook
+!README.md
+!cover.bmp
 !.clang-format
 !src/
 !*.c
