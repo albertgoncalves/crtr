@@ -62,7 +62,7 @@ typedef struct {
     vec3      position;
 } lightSource;
 
-static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = -1.5f};
+static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
 static vec3 CAMERA_ROTATION[3] = {
     {.x = 1.0f, .y = 0.0f, .z = 0.0f},
     {.x = 0.0f, .y = 1.0f, .z = 0.0f},
