@@ -17,19 +17,7 @@ static u8 saturate_sub_u8(u8 a, u8 b) {
     return a <= b ? (u8)0 : (u8)(a - b);
 }
 
-static u8 saturate_mul_u8(u8 a, u8 b) {
-    u16 a_16 = (u16)a;
-    u16 b_16 = (u16)b;
-    u16 result = (u16)(a_16 * b_16);
-    return result < (u16)U8_MAX ? (u8)result : U8_MAX;
-}
-
-static vec3 new_vec3(f32 x, f32 y, f32 z) {
-    vec3 result = {.x = x, .y = y, .z = z};
-    return result;
-}
-
-static f32 dot(vec3 a, vec3 b) {
+static f32 dot_vec3(vec3 a, vec3 b) {
     return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
@@ -67,6 +55,10 @@ static vec3 sub_vec3(vec3 a, vec3 b) {
         .z = a.z - b.z,
     };
     return result;
+}
+
+static f32 len_vec3(vec3 a) {
+    return sqrtf((a.x * a.x) + (a.y * a.y) + (a.z * a.z));
 }
 
 static vec3 normalize_vec3(vec3 a) {
