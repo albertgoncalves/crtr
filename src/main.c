@@ -250,6 +250,7 @@ static void render(pixel* pixels) {
                     ray_direction = reflect(view, normal);
                     min_distance = EPSILON;
                 } else {
+                    reflections[index++].color = BACKGROUND;
                     break;
                 }
             }
