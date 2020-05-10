@@ -52,7 +52,7 @@ typedef struct {
 
 typedef enum {
     AMBIENT = 0,
-    PINPOINT,
+    POINT,
     DIRECTIONAL,
 } lightType;
 
@@ -86,17 +86,17 @@ static sphere SPHERES[N_SPHERES] = {
      .radius = 1.0f,
      .color = {.red = 160, .green = 85, .blue = 240},
      .specular = 10.f,
-     .reflective = 0.3f},
+     .reflective = 0.25f},
     {.center = {.x = 0.0f, .y = -5001.0f, .z = 0.0f},
      .radius = 5000.0f,
-     .color = {.red = 128, .green = 128, .blue = 128},
+     .color = {.red = 90, .green = 90, .blue = 90},
      .specular = 1000.0f,
      .reflective = 0.1f},
 };
 
 static lightSource LIGHTS[N_LIGHTS] = {
     {.type = AMBIENT, .intensity = 0.2f, .position = {0}},
-    {.type = PINPOINT,
+    {.type = POINT,
      .intensity = 0.6f,
      .position = {.x = 2.0f, .y = 1.0f, .z = 0.0f}},
     {.type = DIRECTIONAL,
@@ -161,7 +161,7 @@ static f32 light_intensity(vec3 point, vec3 normal, vec3 view, f32 specular) {
         } else {
             vec3 position;
             f32  t;
-            if (l.type == PINPOINT) {
+            if (l.type == POINT) {
                 position = sub_vec3(l.position, point);
                 t = 1.0;
             } else {
@@ -238,11 +238,13 @@ static void render(pixel* pixels) {
                     vec3 view = mul_vec3_f32(ray_direction, -1.0f);
                     f32  intensity =
                         light_intensity(point, normal, view, s.specular);
-                    colorReflection* r = &reflections[index++];
-                    r->color.red = mul_u8_f32(s.color.red, intensity);
-                    r->color.blue = mul_u8_f32(s.color.blue, intensity);
-                    r->color.green = mul_u8_f32(s.color.green, intensity);
-                    r->reflective = s.reflective;
+                    colorReflection* reflection = &reflections[index++];
+                    reflection->color.red = mul_u8_f32(s.color.red, intensity);
+                    reflection->color.blue =
+                        mul_u8_f32(s.color.blue, intensity);
+                    reflection->color.green =
+                        mul_u8_f32(s.color.green, intensity);
+                    reflection->reflective = s.reflective;
                     if (s.reflective <= 0.0f) {
                         break;
                     }
