@@ -16,7 +16,7 @@
 #define HALF_WIDTH_FLOAT  512.0f
 #define HALF_HEIGHT_FLOAT 576.0f
 
-#define EPSILON 0.01f
+#define EPSILON 0.001f
 
 #define N_SPHERES 4
 #define N_LIGHTS  3
@@ -45,7 +45,7 @@ typedef enum {
 } bool;
 
 typedef struct {
-    f32  threshold;
+    f32  t;
     u8   index;
     bool exists;
 } intersectionResult;
@@ -67,17 +67,17 @@ static vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = -2.0f};
 static rgbColor BACKGROUND = {.red = 245, .green = 245, .blue = 245};
 
 static sphere SPHERES[N_SPHERES] = {
-    {.center = {.x = 0.0f, .y = -1.0f, .z = 3.0f},
+    {.center = {.x = 0.0f, .y = -0.75f, .z = 3.5f},
      .radius = 1.0f,
      .color = {.red = 85, .green = 240, .blue = 160},
      .specular = 500.0f,
      .reflective = 0.2f},
-    {.center = {.x = 2.0f, .y = 0.0f, .z = 4.0f},
+    {.center = {.x = -2.0f, .y = 0.5f, .z = 4.0f},
      .radius = 1.0f,
      .color = {.red = 240, .green = 160, .blue = 85},
      .specular = 500.0f,
      .reflective = 0.4f},
-    {.center = {.x = -2.0f, .y = 0.0f, .z = 4.0f},
+    {.center = {.x = 2.0f, .y = -0.5f, .z = 2.0f},
      .radius = 1.0f,
      .color = {.red = 160, .green = 85, .blue = 240},
      .specular = 10.f,
@@ -109,7 +109,7 @@ static intersectionResult nearest_intersection(vec3 origin,
                                                f32  min_distance,
                                                f32  max_distance) {
     intersectionResult result = {
-        .threshold = F32_MAX,
+        .t = F32_MAX,
         .index = 0,
         .exists = FALSE,
     };
@@ -123,15 +123,15 @@ static intersectionResult nearest_intersection(vec3 origin,
         if (EPSILON < discriminant) {
             f32 t1 = (-k2 - sqrtf(discriminant)) / (2.0f * k1);
             f32 t2 = (-k2 + sqrtf(discriminant)) / (2.0f * k1);
-            if ((t1 < result.threshold) && (min_distance < t1) &&
-                (t1 < max_distance)) {
-                result.threshold = t1;
+            if ((t1 < result.t) && (min_distance < t1) && (t1 < max_distance))
+            {
+                result.t = t1;
                 result.index = i;
                 result.exists = TRUE;
             }
-            if ((t2 < result.threshold) && (min_distance < t2) &&
-                (t2 < max_distance)) {
-                result.threshold = t2;
+            if ((t2 < result.t) && (min_distance < t2) && (t2 < max_distance))
+            {
+                result.t = t2;
                 result.index = i;
                 result.exists = TRUE;
             }
@@ -214,9 +214,9 @@ static void render(pixel* pixels) {
                                          F32_MAX);
                 if (intersection.exists == TRUE) {
                     sphere s = SPHERES[intersection.index];
-                    vec3   point = add_vec3(
-                        ray_position,
-                        mul_vec3_f32(ray_direction, intersection.threshold));
+                    vec3   point =
+                        add_vec3(ray_position,
+                                 mul_vec3_f32(ray_direction, intersection.t));
                     vec3 normal = sub_vec3(point, s.center);
                     normal = mul_vec3_f32(normal, 1.0f / len_vec3(normal));
                     vec3 view = mul_vec3_f32(ray_direction, -1.0f);
