@@ -15,8 +15,8 @@ typedef struct {
 
 typedef struct {
     u32 header_size;
-    u32 pixel_width;
-    u32 pixel_height;
+    i32 pixel_width;
+    i32 pixel_height;
     u16 color_planes;
     u16 bits_per_pixel;
     u8  _[24];
@@ -26,7 +26,6 @@ typedef struct {
     u8 blue;
     u8 green;
     u8 red;
-    u8 _;
 } Pixel;
 
 #define BMP_HEADER_SIZE sizeof(BmpHeader) + sizeof(DibHeader)
@@ -48,10 +47,10 @@ static void set_bmp_header(BmpHeader* header) {
 
 static void set_dib_header(DibHeader* header) {
     header->header_size = sizeof(DibHeader);
-    header->pixel_width = WIDTH;
-    header->pixel_height = HEIGHT;
+    header->pixel_width = (i32)WIDTH;
+    header->pixel_height = (i32)HEIGHT;
     header->color_planes = 1;
-    header->bits_per_pixel = sizeof(u32) * 8;
+    header->bits_per_pixel = sizeof(Pixel) * 8;
 }
 
 static void write_bmp(FileHandle* file, BmpBuffer* buffer) {
