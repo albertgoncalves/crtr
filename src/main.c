@@ -7,14 +7,14 @@
  * NOTE: See `https://www.youtube.com/watch?v=pq7dV4sR7lg`.
  */
 
-#define WIDTH  512
-#define HEIGHT 576
-#define SIZE   294912
+#define WIDTH  1024
+#define HEIGHT 1152
+#define SIZE   1179648
 
-#define WIDTH_FLOAT       512.0f
-#define HEIGHT_FLOAT      576.0f
-#define HALF_WIDTH_FLOAT  256.0f
-#define HALF_HEIGHT_FLOAT 288.0f
+#define WIDTH_FLOAT       1024.0f
+#define HEIGHT_FLOAT      1152.0f
+#define HALF_WIDTH_FLOAT  512.0f
+#define HALF_HEIGHT_FLOAT 576.0f
 
 #define VIEWPORT_SIZE      1.25f
 #define PROJECTION_PLANE_Z 1.0f
