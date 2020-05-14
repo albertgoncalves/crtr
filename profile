@@ -8,7 +8,8 @@ fi
 
 target="$WD/bin/main_valgrind"
 
-sudo sh -c " echo 0 > /proc/sys/kernel/kptr_restrict"
+sudo sh -c "echo 1 > /proc/sys/kernel/perf_event_paranoid"
+sudo sh -c "echo 0 > /proc/sys/kernel/kptr_restrict"
 perf record -g "$target"
 perf report
 rm perf.data*
