@@ -18,5 +18,5 @@ if [ -z "$1" ]; then
     exit 0
 fi
 
-valgrind --tool=cachegrind "$target"
+valgrind --tool=cachegrind --branch-sim=yes "$target"
 rm cachegrind.out.*
