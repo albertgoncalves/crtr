@@ -288,7 +288,7 @@ int main(void) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    BmpBuffer* buffer = calloc(sizeof(BmpBuffer), 1);
+    BmpBuffer* buffer = calloc(1, sizeof(BmpBuffer));
     if (buffer == NULL) {
         return EXIT_FAILURE;
     }
