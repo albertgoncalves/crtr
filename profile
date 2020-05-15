@@ -18,5 +18,8 @@ if [ -z "$1" ]; then
     exit 0
 fi
 
-valgrind --tool=cachegrind --branch-sim=yes "$target"
+valgrind --tool=cachegrind --branch-sim=yes "$target" | less
+for x in cachegrind.out.*; do
+    cg_annotate --auto=yes "$x" | less
+done
 rm cachegrind.out.*
