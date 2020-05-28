@@ -298,4 +298,5 @@ int main(void) {
     write_bmp(file, buffer);
     fclose(file);
     free(buffer);
+    return EXIT_SUCCESS;
 }
