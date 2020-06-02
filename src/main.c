@@ -66,11 +66,6 @@ typedef struct {
 } Reflection;
 
 static Vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
-static Vec3 CAMERA_ROTATION[3] = {
-    {.x = 1.0f, .y = 0.0f, .z = 0.0f},
-    {.x = 0.0f, .y = 1.0f, .z = 0.0f},
-    {.x = 0.0f, .y = 0.0f, .z = 1.0f},
-};
 
 static RgbColor BACKGROUND = {.red = 245, .green = 245, .blue = 245};
 
@@ -207,19 +202,8 @@ static void render(Pixel* pixels) {
         for (f32 x = -HALF_WIDTH_FLOAT; x < HALF_WIDTH_FLOAT; ++x) {
             camera_direction.x = (x * VIEWPORT_SIZE) / WIDTH_FLOAT;
             Vec3 ray_position = CAMERA_POSITION;
-            Vec3 ray_direction = {0};
-            {
-                ray_direction.x += CAMERA_ROTATION[0].x * camera_direction.x;
-                ray_direction.x += CAMERA_ROTATION[0].y * camera_direction.y;
-                ray_direction.x += CAMERA_ROTATION[0].z * camera_direction.z;
-                ray_direction.y += CAMERA_ROTATION[1].x * camera_direction.x;
-                ray_direction.y += CAMERA_ROTATION[1].y * camera_direction.y;
-                ray_direction.y += CAMERA_ROTATION[1].z * camera_direction.z;
-                ray_direction.z += CAMERA_ROTATION[2].x * camera_direction.x;
-                ray_direction.z += CAMERA_ROTATION[2].y * camera_direction.y;
-                ray_direction.z += CAMERA_ROTATION[2].z * camera_direction.z;
-            }
-            u8 index = 0;
+            Vec3 ray_direction = camera_direction;
+            u8   index = 0;
             for (u8 i = 0; i < REFLECT_DEPTH; ++i) {
                 Intersection intersection = nearest_intersection(ray_position,
                                                                  ray_direction,
