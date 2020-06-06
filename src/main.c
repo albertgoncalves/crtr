@@ -307,7 +307,7 @@ static void* thread_render(void* args) {
     Payload* payload = args;
     Pixel*   buffer = payload->buffer;
     for (;;) {
-        u16 index = (u16)atomic_fetch_add(&INDEX, 1);
+        u16 index = atomic_fetch_add(&INDEX, 1);
         if (N_BLOCKS <= index) {
             return NULL;
         }
