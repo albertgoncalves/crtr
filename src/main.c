@@ -135,11 +135,6 @@ static Light LIGHTS[N_LIGHTS] = {
 
 static u16Atomic INDEX = 0;
 
-static u8 mul_u8_f32(u8 a, f32 b) {
-    f32 result = ((f32)a) * b;
-    return (u8)(255.0f < result ? 255.0f : result);
-}
-
 static Intersection nearest_intersection(Vec3 origin,
                                          Vec3 direction,
                                          f32  min_distance,
