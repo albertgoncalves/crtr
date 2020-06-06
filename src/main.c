@@ -222,7 +222,7 @@ static f32 light_intensity(Vec3 point, Vec3 normal, Vec3 view, f32 specular) {
     return intensity;
 }
 
-static void render(Pixel* pixels, Block block) {
+static void render_block(Pixel* pixels, Block block) {
     Vec3 camera_direction = {
         .x = 0.0f,
         .y = 0.0f,
@@ -274,6 +274,7 @@ static void render(Pixel* pixels, Block block) {
                     break;
                 }
             }
+            Pixel* pixel = &pixels[x + offset];
             if (0 < index) {
                 for (u8 i = (u8)(index - 1); 0 < i; --i) {
                     u8       j = (u8)(i - 1);
@@ -290,19 +291,19 @@ static void render(Pixel* pixels, Block block) {
                     reflections[j].color = add_color(color, reflection);
                 }
                 RgbColor color = reflections[0].color;
-                pixels[x + offset].red = color.red;
-                pixels[x + offset].green = color.green;
-                pixels[x + offset].blue = color.blue;
+                pixel->red = color.red;
+                pixel->green = color.green;
+                pixel->blue = color.blue;
             } else {
-                pixels[x + offset].red = BACKGROUND.red;
-                pixels[x + offset].green = BACKGROUND.green;
-                pixels[x + offset].blue = BACKGROUND.blue;
+                pixel->red = BACKGROUND.red;
+                pixel->green = BACKGROUND.green;
+                pixel->blue = BACKGROUND.blue;
             }
         }
     }
 }
 
-static void* do_work(void* args) {
+static void* thread_render(void* args) {
     Payload* payload = args;
     Pixel*   buffer = payload->buffer;
     for (;;) {
@@ -310,8 +311,39 @@ static void* do_work(void* args) {
         if (N_BLOCKS <= index) {
             return NULL;
         }
-        Block block = payload->blocks[index];
-        render(buffer, block);
+        render_block(buffer, payload->blocks[index]);
+    }
+}
+
+static void set_pixels(Memory* memory) {
+    Payload payload;
+    payload.buffer = memory->buffer.pixels;
+    payload.blocks = memory->blocks;
+    u16 index = 0;
+    for (u32 y = 0; y < Y_BLOCKS; ++y) {
+        for (u32 x = 0; x < X_BLOCKS; ++x) {
+            XY start = {
+                .x = x * BLOCK_WIDTH,
+                .y = y * BLOCK_HEIGHT,
+            };
+            XY end = {
+                .x = start.x + BLOCK_WIDTH,
+                .y = start.y + BLOCK_HEIGHT,
+            };
+            end.x = end.x < WIDTH ? end.x : WIDTH;
+            end.y = end.y < HEIGHT ? end.y : HEIGHT;
+            Block block = {
+                .start = start,
+                .end = end,
+            };
+            memory->blocks[index++] = block;
+        }
+    }
+    for (u8 i = 0; i < N_THREADS; ++i) {
+        pthread_create(&memory->threads[i], NULL, thread_render, &payload);
+    }
+    for (u8 i = 0; i < N_THREADS; ++i) {
+        pthread_join(memory->threads[i], NULL);
     }
 }
 
@@ -326,37 +358,7 @@ int main(void) {
     }
     set_bmp_header(&memory->buffer.bmp_header);
     set_dib_header(&memory->buffer.dib_header);
-    Payload payload;
-    payload.buffer = memory->buffer.pixels;
-    payload.blocks = memory->blocks;
-    {
-        u16 index = 0;
-        for (u32 y = 0; y < Y_BLOCKS; ++y) {
-            for (u32 x = 0; x < X_BLOCKS; ++x) {
-                XY start = {
-                    .x = x * BLOCK_WIDTH,
-                    .y = y * BLOCK_HEIGHT,
-                };
-                XY end = {
-                    .x = start.x + BLOCK_WIDTH,
-                    .y = start.y + BLOCK_HEIGHT,
-                };
-                end.x = end.x < WIDTH ? end.x : WIDTH;
-                end.y = end.y < HEIGHT ? end.y : HEIGHT;
-                Block block = {
-                    .start = start,
-                    .end = end,
-                };
-                memory->blocks[index++] = block;
-            }
-        }
-    }
-    for (u8 i = 0; i < N_THREADS; ++i) {
-        pthread_create(&memory->threads[i], NULL, do_work, &payload);
-    }
-    for (u8 i = 0; i < N_THREADS; ++i) {
-        pthread_join(memory->threads[i], NULL);
-    }
+    set_pixels(memory);
     write_bmp(file, &memory->buffer);
     fclose(file);
     free(memory);
