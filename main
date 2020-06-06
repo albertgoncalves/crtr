@@ -14,7 +14,7 @@ export FLAGS=(
     "-fsingle-precision-constant"
     "-march=native"
     "-O3"
-    "-std=gnu99"
+    "-std=gnu11"
     "-Wall"
     "-Wbad-function-cast"
     "-Wcast-align"
@@ -86,12 +86,13 @@ export FILES=(
 build_all () {
     cp "$WD/src"/* "$WD/build"
     cd "$WD/build" || exit 1
-    gcc -g -o "$TARGET_VALGRIND" "${FLAGS[@]}" -lm "${FILES[@]}"
+    gcc -g -o "$TARGET_VALGRIND" "${FLAGS[@]}" -lm -pthread "${FILES[@]}"
     gcc \
         -o "$TARGET_SANITIZE" \
         "${FLAGS[@]}" \
         "${FLAGS_SANITIZE[@]}" \
         -lm \
+        -pthread \
         "${FILES[@]}"
 }
 

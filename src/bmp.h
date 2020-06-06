@@ -29,12 +29,12 @@ typedef struct {
 } Pixel;
 
 #define BMP_HEADER_SIZE sizeof(BmpHeader) + sizeof(DibHeader)
-#define BMP_FILE_SIZE   BMP_HEADER_SIZE + sizeof(Pixel[SIZE])
+#define BMP_FILE_SIZE   BMP_HEADER_SIZE + sizeof(Pixel[N_PIXELS])
 
 #pragma pack(pop)
 
 typedef struct {
-    Pixel     pixels[SIZE];
+    Pixel     pixels[N_PIXELS];
     DibHeader dib_header;
     BmpHeader bmp_header;
 } BmpBuffer;
@@ -64,8 +64,8 @@ static void write_bmp(FileHandle* file, BmpBuffer* buffer) {
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->pixels, 1, sizeof(Pixel[SIZE]), file) !=
-        sizeof(Pixel[SIZE]))
+    if (fwrite(&buffer->pixels, 1, sizeof(Pixel[N_PIXELS]), file) !=
+        sizeof(Pixel[N_PIXELS]))
     {
         exit(EXIT_FAILURE);
     }

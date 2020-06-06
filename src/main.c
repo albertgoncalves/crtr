@@ -1,5 +1,7 @@
 #include <float.h>
 #include <math.h>
+#include <pthread.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,9 +9,9 @@
  * NOTE: See `https://www.youtube.com/watch?v=pq7dV4sR7lg`.
  */
 
-#define WIDTH  1024
-#define HEIGHT 1152
-#define SIZE   1179648
+#define WIDTH    1024u
+#define HEIGHT   1152u
+#define N_PIXELS 1179648u
 
 #define WIDTH_FLOAT       1024.0f
 #define HEIGHT_FLOAT      1152.0f
@@ -21,9 +23,17 @@
 #define MIN_DISTANCE       1.0f
 #define EPSILON            0.1f
 
-#define N_SPHERES     4
-#define N_LIGHTS      3
-#define REFLECT_DEPTH 5
+#define N_SPHERES     4u
+#define N_LIGHTS      3u
+#define REFLECT_DEPTH 5u
+
+#define BLOCK_WIDTH  256u
+#define BLOCK_HEIGHT 256u
+#define X_BLOCKS     4u
+#define Y_BLOCKS     5u
+#define N_BLOCKS     20u
+
+#define N_THREADS 3u
 
 #define FILEPATH "out/main.bmp"
 
@@ -65,6 +75,27 @@ typedef struct {
     f32      reflective;
 } Reflection;
 
+typedef struct {
+    u32 x;
+    u32 y;
+} XY;
+
+typedef struct {
+    XY start;
+    XY end;
+} Block;
+
+typedef struct {
+    Pixel* buffer;
+    Block* blocks;
+} Payload;
+
+typedef struct {
+    BmpBuffer buffer;
+    Thread    threads[N_THREADS];
+    Block     blocks[N_BLOCKS];
+} Memory;
+
 static Vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
 
 static RgbColor BACKGROUND = {.red = 245, .green = 245, .blue = 245};
@@ -101,6 +132,8 @@ static Light LIGHTS[N_LIGHTS] = {
      .intensity = 0.2f,
      .position = {.x = 1.0f, .y = 4.0f, .z = 4.0f}},
 };
+
+static u16Atomic INDEX = 0;
 
 static u8 mul_u8_f32(u8 a, f32 b) {
     f32 result = ((f32)a) * b;
@@ -189,7 +222,7 @@ static f32 light_intensity(Vec3 point, Vec3 normal, Vec3 view, f32 specular) {
     return intensity;
 }
 
-static void render(Pixel* pixels) {
+static void render(Pixel* pixels, Block block) {
     Vec3 camera_direction = {
         .x = 0.0f,
         .y = 0.0f,
@@ -197,10 +230,13 @@ static void render(Pixel* pixels) {
     };
     Reflection reflections[REFLECT_DEPTH] = {0};
     f32        min_distance = MIN_DISTANCE;
-    for (f32 y = -HALF_HEIGHT_FLOAT; y < HALF_HEIGHT_FLOAT; ++y) {
-        camera_direction.y = (y * VIEWPORT_SIZE) / HEIGHT_FLOAT;
-        for (f32 x = -HALF_WIDTH_FLOAT; x < HALF_WIDTH_FLOAT; ++x) {
-            camera_direction.x = (x * VIEWPORT_SIZE) / WIDTH_FLOAT;
+    for (u32 y = block.start.y; y < block.end.y; ++y) {
+        u32 offset = y * WIDTH;
+        camera_direction.y =
+            (((f32)y - HALF_HEIGHT_FLOAT) * VIEWPORT_SIZE) / HEIGHT_FLOAT;
+        for (u32 x = block.start.x; x < block.end.x; ++x) {
+            camera_direction.x =
+                (((f32)x - HALF_WIDTH_FLOAT) * VIEWPORT_SIZE) / WIDTH_FLOAT;
             Vec3 ray_position = CAMERA_POSITION;
             Vec3 ray_direction = camera_direction;
             u8   index = 0;
@@ -254,16 +290,28 @@ static void render(Pixel* pixels) {
                     reflections[j].color = add_color(color, reflection);
                 }
                 RgbColor color = reflections[0].color;
-                pixels->red = color.red;
-                pixels->green = color.green;
-                pixels->blue = color.blue;
+                pixels[x + offset].red = color.red;
+                pixels[x + offset].green = color.green;
+                pixels[x + offset].blue = color.blue;
             } else {
-                pixels->red = BACKGROUND.red;
-                pixels->green = BACKGROUND.green;
-                pixels->blue = BACKGROUND.blue;
+                pixels[x + offset].red = BACKGROUND.red;
+                pixels[x + offset].green = BACKGROUND.green;
+                pixels[x + offset].blue = BACKGROUND.blue;
             }
-            ++pixels;
         }
+    }
+}
+
+static void* do_work(void* args) {
+    Payload* payload = args;
+    Pixel*   buffer = payload->buffer;
+    for (;;) {
+        u16 index = (u16)atomic_fetch_add(&INDEX, 1);
+        if (N_BLOCKS <= index) {
+            return NULL;
+        }
+        Block block = payload->blocks[index];
+        render(buffer, block);
     }
 }
 
@@ -272,15 +320,45 @@ int main(void) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    BmpBuffer* buffer = calloc(1, sizeof(BmpBuffer));
-    if (buffer == NULL) {
+    Memory* memory = calloc(1, sizeof(Memory));
+    if (memory == NULL) {
         return EXIT_FAILURE;
     }
-    set_bmp_header(&buffer->bmp_header);
-    set_dib_header(&buffer->dib_header);
-    render(buffer->pixels);
-    write_bmp(file, buffer);
+    set_bmp_header(&memory->buffer.bmp_header);
+    set_dib_header(&memory->buffer.dib_header);
+    Payload payload;
+    payload.buffer = memory->buffer.pixels;
+    payload.blocks = memory->blocks;
+    {
+        u16 index = 0;
+        for (u32 y = 0; y < Y_BLOCKS; ++y) {
+            for (u32 x = 0; x < X_BLOCKS; ++x) {
+                XY start = {
+                    .x = x * BLOCK_WIDTH,
+                    .y = y * BLOCK_HEIGHT,
+                };
+                XY end = {
+                    .x = start.x + BLOCK_WIDTH,
+                    .y = start.y + BLOCK_HEIGHT,
+                };
+                end.x = end.x < WIDTH ? end.x : WIDTH;
+                end.y = end.y < HEIGHT ? end.y : HEIGHT;
+                Block block = {
+                    .start = start,
+                    .end = end,
+                };
+                memory->blocks[index++] = block;
+            }
+        }
+    }
+    for (u8 i = 0; i < N_THREADS; ++i) {
+        pthread_create(&memory->threads[i], NULL, do_work, &payload);
+    }
+    for (u8 i = 0; i < N_THREADS; ++i) {
+        pthread_join(memory->threads[i], NULL);
+    }
+    write_bmp(file, &memory->buffer);
     fclose(file);
-    free(buffer);
+    free(memory);
     return EXIT_SUCCESS;
 }
