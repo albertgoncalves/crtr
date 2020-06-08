@@ -39,6 +39,11 @@
 
 #include "bmp.h"
 
+typedef enum {
+    EMPTY = 0,
+    SPHERE,
+} Geom;
+
 typedef struct {
     Vec3     center;
     RgbColor color;
@@ -67,7 +72,7 @@ typedef enum {
 typedef struct {
     f32  t;
     u8   index;
-    Bool exists;
+    Geom geom;
 } Intersection;
 
 typedef struct {
@@ -142,7 +147,7 @@ static Intersection nearest_intersection(Vec3 origin,
     Intersection result = {
         .t = F32_MAX,
         .index = 0,
-        .exists = FALSE,
+        .geom = EMPTY,
     };
     for (u8 i = 0; i < N_SPHERES; ++i) {
         Sphere sphere = SPHERES[i];
@@ -158,13 +163,13 @@ static Intersection nearest_intersection(Vec3 origin,
             {
                 result.t = t1;
                 result.index = i;
-                result.exists = TRUE;
+                result.geom = SPHERE;
             }
             if ((t2 < result.t) && (min_distance < t2) && (t2 < max_distance))
             {
                 result.t = t2;
                 result.index = i;
-                result.exists = TRUE;
+                result.geom = SPHERE;
             }
         }
     }
@@ -196,7 +201,7 @@ static f32 light_intensity(Vec3 point, Vec3 normal, Vec3 view, f32 specular) {
             }
             Intersection shadow =
                 nearest_intersection(point, position, EPSILON, t);
-            if (shadow.exists == TRUE) {
+            if (shadow.geom != EMPTY) {
                 continue;
             }
             f32 reflection_diffuse = dot_vec3(normal, position);
@@ -240,7 +245,7 @@ static void render_block(Pixel* pixels, Block block) {
                                                                  ray_direction,
                                                                  min_distance,
                                                                  F32_MAX);
-                if (intersection.exists == TRUE) {
+                if (intersection.geom == SPHERE) {
                     Sphere sphere = SPHERES[intersection.index];
                     Vec3   point =
                         add_vec3(ray_position,
