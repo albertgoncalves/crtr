@@ -2,6 +2,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,9 +10,29 @@
  * NOTE: See `https://www.youtube.com/watch?v=pq7dV4sR7lg`.
  */
 
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef int32_t  i32;
+
+typedef float f32;
+
 #define WIDTH    1024u
 #define HEIGHT   1152u
 #define N_PIXELS 1179648u
+
+#define FILEPATH "out/main.bmp"
+
+#include "bmp.h"
+#include "color.h"
+#include "math.h"
+
+#define F32_MAX FLT_MAX
+
+typedef pthread_t            Thread;
+typedef atomic_uint_fast16_t u16Atomic;
+
+#define N_THREADS 3u
 
 #define WIDTH_FLOAT       1024.0f
 #define HEIGHT_FLOAT      1152.0f
@@ -32,12 +53,6 @@
 #define X_BLOCKS     4u
 #define Y_BLOCKS     5u
 #define N_BLOCKS     20u
-
-#define N_THREADS 3u
-
-#define FILEPATH "out/main.bmp"
-
-#include "bmp.h"
 
 typedef enum {
     EMPTY = 0,
@@ -138,8 +153,6 @@ static Light LIGHTS[N_LIGHTS] = {
      .position = {.x = 1.0f, .y = 4.0f, .z = 4.0f}},
 };
 
-static u16Atomic INDEX = 0;
-
 static Intersection nearest_intersection(Vec3 origin,
                                          Vec3 direction,
                                          f32  min_distance,
@@ -173,11 +186,6 @@ static Intersection nearest_intersection(Vec3 origin,
             }
         }
     }
-    return result;
-}
-
-static Vec3 reflect(Vec3 a, Vec3 b) {
-    Vec3 result = sub_vec3(mul_vec3_f32(b, 2.0f * dot_vec3(a, b)), a);
     return result;
 }
 
@@ -246,8 +254,9 @@ static void render_block(Pixel* pixels, Block block) {
                                                                  min_distance,
                                                                  F32_MAX);
                 if (intersection.geom == SPHERE) {
-                    Sphere sphere = SPHERES[intersection.index];
-                    Vec3   point =
+                    Sphere      sphere = SPHERES[intersection.index];
+                    Reflection* reflection = &reflections[index++];
+                    Vec3        point =
                         add_vec3(ray_position,
                                  mul_vec3_f32(ray_direction, intersection.t));
                     Vec3 normal = sub_vec3(point, sphere.center);
@@ -255,7 +264,6 @@ static void render_block(Pixel* pixels, Block block) {
                     Vec3 view = mul_vec3_f32(ray_direction, -1.0f);
                     f32  intensity =
                         light_intensity(point, normal, view, sphere.specular);
-                    Reflection* reflection = &reflections[index++];
                     reflection->color.red =
                         mul_u8_f32(sphere.color.red, intensity);
                     reflection->color.blue =
@@ -281,9 +289,10 @@ static void render_block(Pixel* pixels, Block block) {
                     RgbColor reflection = reflections[i].color;
                     RgbColor color = reflections[j].color;
                     f32      reflective = reflections[j].reflective;
-                    color.red = mul_u8_f32(color.red, 1.0f - reflective);
-                    color.green = mul_u8_f32(color.green, 1.0f - reflective);
-                    color.blue = mul_u8_f32(color.blue, 1.0f - reflective);
+                    f32      reflective_inv = 1.0f - reflective;
+                    color.red = mul_u8_f32(color.red, reflective_inv);
+                    color.green = mul_u8_f32(color.green, reflective_inv);
+                    color.blue = mul_u8_f32(color.blue, reflective_inv);
                     reflection.red = mul_u8_f32(reflection.red, reflective);
                     reflection.green =
                         mul_u8_f32(reflection.green, reflective);
@@ -303,15 +312,15 @@ static void render_block(Pixel* pixels, Block block) {
     }
 }
 
-static void* thread_render(void* args) {
-    Payload* payload = args;
-    Pixel*   buffer = payload->buffer;
+static void* thread_render(void* payload) {
+    Pixel* buffer = ((Payload*)payload)->buffer;
+    Block* blocks = ((Payload*)payload)->blocks;
     for (;;) {
-        u16 index = atomic_fetch_add(&INDEX, 1);
+        u16 index = (u16)atomic_fetch_add(&INDEX, 1u);
         if (N_BLOCKS <= index) {
             return NULL;
         }
-        render_block(buffer, payload->blocks[index]);
+        render_block(buffer, blocks[index]);
     }
 }
 
@@ -348,13 +357,13 @@ static void set_pixels(Memory* memory) {
 }
 
 int main(void) {
-    FileHandle* file = fopen(FILEPATH, "wb");
+    File* file = fopen(FILEPATH, "wb");
     if (file == NULL) {
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
     Memory* memory = calloc(1, sizeof(Memory));
     if (memory == NULL) {
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
     set_bmp_header(&memory->buffer.bmp_header);
     set_dib_header(&memory->buffer.dib_header);

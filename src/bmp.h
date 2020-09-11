@@ -1,8 +1,7 @@
 #ifndef __BMP_H__
 #define __BMP_H__
 
-#include "color.h"
-#include "types.h"
+typedef FILE File;
 
 #pragma pack(push, 1)
 
@@ -53,7 +52,7 @@ static void set_dib_header(DibHeader* header) {
     header->bits_per_pixel = sizeof(Pixel) * 8;
 }
 
-static void write_bmp(FileHandle* file, BmpBuffer* buffer) {
+static void write_bmp(File* file, BmpBuffer* buffer) {
     if (fwrite(&buffer->bmp_header, 1, sizeof(BmpHeader), file) !=
         sizeof(BmpHeader))
     {

@@ -1,17 +1,11 @@
 #ifndef __MATH_H__
 #define __MATH_H__
 
-#include "types.h"
-
 typedef struct {
     f32 x;
     f32 y;
     f32 z;
 } Vec3;
-
-static u8 saturate_add_u8(u8 a, u8 b) {
-    return (U8_MAX - b) < a ? (u8)U8_MAX : (u8)(a + b);
-}
 
 static u8 mul_u8_f32(u8 a, f32 b) {
     f32 result = ((f32)a) * b;
@@ -51,6 +45,11 @@ static Vec3 sub_vec3(Vec3 a, Vec3 b) {
 
 static f32 len_vec3(Vec3 a) {
     return sqrtf((a.x * a.x) + (a.y * a.y) + (a.z * a.z));
+}
+
+static Vec3 reflect(Vec3 a, Vec3 b) {
+    Vec3 result = sub_vec3(mul_vec3_f32(b, 2.0f * dot_vec3(a, b)), a);
+    return result;
 }
 
 #endif
