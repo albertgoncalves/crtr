@@ -55,7 +55,7 @@ typedef atomic_uint_fast16_t u16Atomic;
 #define N_BLOCKS     20u
 
 typedef enum {
-    EMPTY = 0,
+    EMPTY = 0u,
     SPHERE,
 } Geom;
 
@@ -68,7 +68,7 @@ typedef struct {
 } Sphere;
 
 typedef enum {
-    AMBIENT = 0,
+    AMBIENT = 0u,
     POINT,
     DIRECTIONAL,
 } LightType;
@@ -80,7 +80,7 @@ typedef struct {
 } Light;
 
 typedef enum {
-    FALSE = 0,
+    FALSE = 0u,
     TRUE,
 } Bool;
 
@@ -116,35 +116,37 @@ typedef struct {
     Block     blocks[N_BLOCKS];
 } Memory;
 
+static u16Atomic INDEX = 0u;
+
 static Vec3 CAMERA_POSITION = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
 
-static RgbColor BACKGROUND = {.red = 245, .green = 245, .blue = 245};
+static RgbColor BACKGROUND = {.red = 245u, .green = 245u, .blue = 245u};
 
 static Sphere SPHERES[N_SPHERES] = {
     {.center = {.x = 0.0f, .y = -0.75f, .z = 4.5f},
      .radius = 1.0f,
-     .color = {.red = 85, .green = 240, .blue = 160},
+     .color = {.red = 85u, .green = 240u, .blue = 160u},
      .specular = 500.0f,
      .reflective = 0.2f},
     {.center = {.x = -1.75f, .y = 0.5f, .z = 5.0f},
      .radius = 1.0f,
-     .color = {.red = 240, .green = 160, .blue = 85},
+     .color = {.red = 240u, .green = 160u, .blue = 85u},
      .specular = 500.0f,
      .reflective = 0.4f},
     {.center = {.x = 1.75f, .y = -0.5f, .z = 3.0f},
      .radius = 1.0f,
-     .color = {.red = 160, .green = 85, .blue = 240},
+     .color = {.red = 160u, .green = 85u, .blue = 240u},
      .specular = 10.f,
      .reflective = 0.25f},
     {.center = {.x = 0.0f, .y = -5001.0f, .z = 0.0f},
      .radius = 5000.0f,
-     .color = {.red = 90, .green = 90, .blue = 90},
+     .color = {.red = 90u, .green = 90u, .blue = 90u},
      .specular = 1000.0f,
      .reflective = 0.1f},
 };
 
 static Light LIGHTS[N_LIGHTS] = {
-    {.type = AMBIENT, .intensity = 0.2f, .position = {0}},
+    {.type = AMBIENT, .intensity = 0.2f, .position = {0u}},
     {.type = POINT,
      .intensity = 0.6f,
      .position = {.x = 2.0f, .y = 1.0f, .z = 0.0f}},
@@ -159,10 +161,10 @@ static Intersection nearest_intersection(Vec3 origin,
                                          f32  max_distance) {
     Intersection result = {
         .t = F32_MAX,
-        .index = 0,
+        .index = 0u,
         .geom = EMPTY,
     };
-    for (u8 i = 0; i < N_SPHERES; ++i) {
+    for (u8 i = 0u; i < N_SPHERES; ++i) {
         Sphere sphere = SPHERES[i];
         Vec3   center = sub_vec3(origin, sphere.center);
         f32    k1 = dot_vec3(direction, direction);
@@ -193,7 +195,7 @@ static f32 light_intensity(Vec3 point, Vec3 normal, Vec3 view, f32 specular) {
     f32 intensity = 0.0f;
     f32 len_normal = len_vec3(normal);
     f32 len_view = len_vec3(view);
-    for (u8 i = 0; i < N_LIGHTS; ++i) {
+    for (u8 i = 0u; i < N_LIGHTS; ++i) {
         Light light = LIGHTS[i];
         if (light.type == AMBIENT) {
             intensity += light.intensity;
@@ -236,7 +238,7 @@ static void render_block(Pixel* pixels, Block block) {
         .y = 0.0f,
         .z = PROJECTION_PLANE_Z,
     };
-    Reflection reflections[REFLECT_DEPTH] = {0};
+    Reflection reflections[REFLECT_DEPTH] = {0u};
     f32        min_distance = MIN_DISTANCE;
     for (u32 y = block.start.y; y < block.end.y; ++y) {
         u32 offset = y * WIDTH;
@@ -247,8 +249,8 @@ static void render_block(Pixel* pixels, Block block) {
                 (((f32)x - HALF_WIDTH_FLOAT) * VIEWPORT_SIZE) / WIDTH_FLOAT;
             Vec3 ray_position = CAMERA_POSITION;
             Vec3 ray_direction = camera_direction;
-            u8   index = 0;
-            for (u8 i = 0; i < REFLECT_DEPTH; ++i) {
+            u8   index = 0u;
+            for (u8 i = 0u; i < REFLECT_DEPTH; ++i) {
                 Intersection intersection = nearest_intersection(ray_position,
                                                                  ray_direction,
                                                                  min_distance,
@@ -284,8 +286,8 @@ static void render_block(Pixel* pixels, Block block) {
             }
             Pixel* pixel = &pixels[x + offset];
             if (0 < index) {
-                for (u8 i = (u8)(index - 1); 0 < i; --i) {
-                    u8       j = (u8)(i - 1);
+                for (u8 i = (u8)(index - 1u); 0u < i; --i) {
+                    u8       j = (u8)(i - 1u);
                     RgbColor reflection = reflections[i].color;
                     RgbColor color = reflections[j].color;
                     f32      reflective = reflections[j].reflective;
@@ -299,7 +301,7 @@ static void render_block(Pixel* pixels, Block block) {
                     reflection.blue = mul_u8_f32(reflection.blue, reflective);
                     reflections[j].color = add_color(color, reflection);
                 }
-                RgbColor color = reflections[0].color;
+                RgbColor color = reflections[0u].color;
                 pixel->red = color.red;
                 pixel->green = color.green;
                 pixel->blue = color.blue;
@@ -328,9 +330,9 @@ static void set_pixels(Memory* memory) {
     Payload payload;
     payload.buffer = memory->buffer.pixels;
     payload.blocks = memory->blocks;
-    u16 index = 0;
-    for (u32 y = 0; y < Y_BLOCKS; ++y) {
-        for (u32 x = 0; x < X_BLOCKS; ++x) {
+    u16 index = 0u;
+    for (u32 y = 0u; y < Y_BLOCKS; ++y) {
+        for (u32 x = 0u; x < X_BLOCKS; ++x) {
             XY start = {
                 .x = x * BLOCK_WIDTH,
                 .y = y * BLOCK_HEIGHT,
@@ -348,10 +350,10 @@ static void set_pixels(Memory* memory) {
             memory->blocks[index++] = block;
         }
     }
-    for (u8 i = 0; i < N_THREADS; ++i) {
+    for (u8 i = 0u; i < N_THREADS; ++i) {
         pthread_create(&memory->threads[i], NULL, thread_render, &payload);
     }
-    for (u8 i = 0; i < N_THREADS; ++i) {
+    for (u8 i = 0u; i < N_THREADS; ++i) {
         pthread_join(memory->threads[i], NULL);
     }
 }
@@ -361,7 +363,7 @@ int main(void) {
     if (file == NULL) {
         exit(EXIT_FAILURE);
     }
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = calloc(1u, sizeof(Memory));
     if (memory == NULL) {
         exit(EXIT_FAILURE);
     }

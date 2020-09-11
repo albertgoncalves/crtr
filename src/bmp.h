@@ -18,7 +18,7 @@ typedef struct {
     i32 pixel_height;
     u16 color_planes;
     u16 bits_per_pixel;
-    u8  _[24];
+    u8  _[24u];
 } DibHeader;
 
 typedef struct {
@@ -39,7 +39,7 @@ typedef struct {
 } BmpBuffer;
 
 static void set_bmp_header(BmpHeader* header) {
-    header->id = 0x4d42;
+    header->id = 0x4D42u;
     header->file_size = BMP_FILE_SIZE;
     header->header_offset = BMP_HEADER_SIZE;
 }
@@ -48,22 +48,22 @@ static void set_dib_header(DibHeader* header) {
     header->header_size = sizeof(DibHeader);
     header->pixel_width = (i32)WIDTH;
     header->pixel_height = (i32)HEIGHT;
-    header->color_planes = 1;
-    header->bits_per_pixel = sizeof(Pixel) * 8;
+    header->color_planes = 1u;
+    header->bits_per_pixel = sizeof(Pixel) * 8u;
 }
 
 static void write_bmp(File* file, BmpBuffer* buffer) {
-    if (fwrite(&buffer->bmp_header, 1, sizeof(BmpHeader), file) !=
+    if (fwrite(&buffer->bmp_header, 1u, sizeof(BmpHeader), file) !=
         sizeof(BmpHeader))
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->dib_header, 1, sizeof(DibHeader), file) !=
+    if (fwrite(&buffer->dib_header, 1u, sizeof(DibHeader), file) !=
         sizeof(DibHeader))
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->pixels, 1, sizeof(Pixel[N_PIXELS]), file) !=
+    if (fwrite(&buffer->pixels, 1u, sizeof(Pixel[N_PIXELS]), file) !=
         sizeof(Pixel[N_PIXELS]))
     {
         exit(EXIT_FAILURE);
