@@ -3,7 +3,7 @@
 
 typedef FILE File;
 
-#pragma pack(push, 1)
+#pragma pack(push, 2u)
 
 typedef struct {
     u16 id;
