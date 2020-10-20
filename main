@@ -106,4 +106,4 @@ build_all () {
     python3 -c "print(\"Compiled! ({:.3f}s)\n\".format(${end} - ${start}))"
 )
 
-"$TARGET_SANITIZE"
+"$TARGET_SANITIZE" "$WD/out/main.bmp"

@@ -21,8 +21,6 @@ typedef float f32;
 #define HEIGHT   1152u
 #define N_PIXELS 1179648u
 
-#define FILEPATH "out/main.bmp"
-
 #include "bmp.h"
 #include "color.h"
 #include "math.h"
@@ -358,8 +356,11 @@ static void set_pixels(Memory* memory) {
     }
 }
 
-int main(void) {
-    File* file = fopen(FILEPATH, "wb");
+i32 main(i32 n, const char** args) {
+    if (n < 2) {
+        exit(EXIT_FAILURE);
+    }
+    File* file = fopen(args[1], "wb");
     if (file == NULL) {
         exit(EXIT_FAILURE);
     }
