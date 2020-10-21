@@ -39,7 +39,7 @@ typedef struct {
 } BmpBuffer;
 
 static void set_bmp_header(BmpHeader* header) {
-    header->id = 0x4D42u;
+    header->id = __builtin_bswap16(0x424Du);
     header->file_size = BMP_FILE_SIZE;
     header->header_offset = BMP_HEADER_SIZE;
 }
