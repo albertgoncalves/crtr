@@ -6,9 +6,9 @@ now () {
     date +%s.%N
 }
 
-export TARGET_SANITIZE="$WD/bin/main_sanitize"
-export TARGET_VALGRIND="$WD/bin/main_valgrind"
-export FLAGS=(
+target_sanitize="$WD/bin/main_sanitize"
+target_valgrind="$WD/bin/main_valgrind"
+flags=(
     "-fdelete-null-pointer-checks"
     "-fshort-enums"
     "-fsingle-precision-constant"
@@ -52,7 +52,7 @@ export FLAGS=(
     "-Wunused-macros"
     "-Wwrite-strings"
 )
-export FLAGS_SANITIZE=(
+flags_sanitize=(
     "-fsanitize=address"
     "-fsanitize-address-use-after-scope"
     "-fsanitize=alignment"
@@ -79,31 +79,26 @@ export FLAGS_SANITIZE=(
     "-fsanitize=unreachable"
     "-fsanitize=vla-bound"
 )
-export FILES=(
+files=(
     main.c
 )
 
-build_all () {
-    cp "$WD/src"/* "$WD/build"
-    cd "$WD/build"
-    gcc -g -o "$TARGET_VALGRIND" "${FLAGS[@]}" -lm -pthread "${FILES[@]}"
-    gcc \
-        -o "$TARGET_SANITIZE" \
-        "${FLAGS[@]}" \
-        "${FLAGS_SANITIZE[@]}" \
-        -lm \
-        -pthread \
-        "${FILES[@]}"
-}
-
+clang-format -i -verbose "$WD/src"/* 2>&1 | sed 's/\/.*\///g'
+cppcheck --enable=all --suppress=missingIncludeSystem "$WD/src" \
+    | sed 's/\/.*\/\(.*\) \.\.\./\1/g'
 (
     start=$(now)
-    clang-format -i -verbose "$WD/src"/* 2>&1 | sed 's/\/.*\///g'
-    cppcheck --enable=all --suppress=missingIncludeSystem "$WD/src" \
-        | sed 's/\/.*\/\(.*\) \.\.\./\1/g'
-    build_all
+    cp "$WD/src"/* "$WD/build"
+    cd "$WD/build"
+    gcc -g -o "$target_valgrind" "${flags[@]}" -lm -pthread "${files[@]}"
+    gcc \
+        -o "$target_sanitize" \
+        "${flags[@]}" \
+        "${flags_sanitize[@]}" \
+        -lm \
+        -pthread \
+        "${files[@]}"
     end=$(now)
     python3 -c "print(\"Compiled! ({:.3f}s)\n\".format(${end} - ${start}))"
 )
-
-"$TARGET_SANITIZE" "$WD/out/main.bmp"
+"$target_sanitize" "$WD/out/main.bmp"
